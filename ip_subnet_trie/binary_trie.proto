@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+message BinaryTrieNode {
+  bool is_end = 1;
+  Children children = 2;
+
+  message Children {
+    BinaryTrieNode zero = 1;
+    BinaryTrieNode one = 2;
+  }
+}
