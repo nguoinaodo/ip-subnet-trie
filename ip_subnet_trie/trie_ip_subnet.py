@@ -139,7 +139,7 @@ class IPSubnetTrie(Trie):
         Returns:
             list: A list of string representations of the children.
         """
-        ip, netmask = parse_ip_subnet(ip_subnet)        
+        ip, netmask = parse_ip_subnet(ip_subnet)
         _, node = self.__traverse_node(ip, netmask)
         if node is None:
             return []
@@ -162,6 +162,34 @@ class IPSubnetTrie(Trie):
                 result.extend(self.__dfs(child))
         return result
 
+    def get_parent(self, ip_subnet: str):
+        """
+        Retrieves the parent node of the given IP subnet.
+
+        Args:
+            ip_subnet (str): The IP subnet to find the parent for.
+
+        Returns:
+            str: The representation of the nearest parent node, or None if no parent found.
+        """
+        
+        ip, netmask = parse_ip_subnet(ip_subnet)
+
+        parents, _ = self.__traverse_node(ip, netmask)
+        if not parents:
+            return None
+        nearest_parent = self.__get_nearest_parent(parents)
+        if not nearest_parent:
+            return None
+
+        return self.__get_node_representation(nearest_parent)
+    
+    def __get_nearest_parent(self, parents: list[TrieNode]):
+        for parent, _ in reversed(parents):
+            if parent.is_end:
+                return parent
+        return None
+    
     def delete(self, ip_subnet):
         """
         Deletes an IP subnet from the trie.
