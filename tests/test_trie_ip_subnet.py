@@ -34,3 +34,23 @@ def test_trie_ip_subnet():
     trie.serializer = IPSubnetProtobufSerializer()
     trie.deserialize(open('ip_subnet_trie.pb', 'rb').read())
     assert set(trie.get_children('192.168.0.0/24')) == {'192.168.0.1/32', '192.168.0.6/32', '192.168.0.5/32'}
+
+def test_get_parent():
+    trie = IPSubnetTrie(serializer=IPSubnetProtobufSerializer())
+
+    trie.insert('10.255.249.105')
+    trie.insert('10.255.249.104')
+    trie.insert('10.255.249.0/24')
+    trie.insert('10.255.249.64/26')
+    trie.insert('10.255.249.0/26')
+    assert set(trie.get_children('10.255.249.0/24')) == {
+        '10.255.249.105/32', '10.255.249.104/32',
+        '10.255.249.0/26', '10.255.249.64/26',
+    }
+    assert set(trie.get_children('10.255.249.64/26')) == {
+        '10.255.249.105/32', '10.255.249.104/32',
+    }
+    assert trie.get_parent('10.255.249.104') == '10.255.249.64/26'
+    assert trie.get_parent('10.255.249.105') == '10.255.249.64/26'
+    assert trie.get_parent('10.255.249.0/26') == '10.255.249.0/24'
+    assert trie.get_parent('10.255.249.64/26') == '10.255.249.0/24'
