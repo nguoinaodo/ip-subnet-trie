@@ -1,7 +1,7 @@
-from ip_subnet_trie import IPSubnetTrie, IPSubnetJsonSerializer, IPSubnetProtobufSerializer
+from ip_subnet_trie import IPv4SubnetTrie, IPSubnetJsonSerializer, IPSubnetProtobufSerializer
 
 def test_trie_ip_subnet():
-    trie = IPSubnetTrie(serializer=IPSubnetProtobufSerializer())
+    trie = IPv4SubnetTrie(serializer=IPSubnetProtobufSerializer())
 
     trie.insert('192.168.0.1')
     trie.insert('192.168.0.2')
@@ -36,16 +36,17 @@ def test_trie_ip_subnet():
     assert set(trie.get_children('192.168.0.0/24')) == {'192.168.0.1/32', '192.168.0.6/32', '192.168.0.5/32'}
 
 def test_get_parent():
-    trie = IPSubnetTrie(serializer=IPSubnetProtobufSerializer())
+    trie = IPv4SubnetTrie(serializer=IPSubnetProtobufSerializer())
 
     trie.insert('10.255.249.105')
     trie.insert('10.255.249.104')
+    trie.insert('10.255.249.0')
     trie.insert('10.255.249.0/24')
     trie.insert('10.255.249.64/26')
     trie.insert('10.255.249.0/26')
     assert set(trie.get_children('10.255.249.0/24')) == {
         '10.255.249.105/32', '10.255.249.104/32',
-        '10.255.249.0/26', '10.255.249.64/26',
+        '10.255.249.0/26', '10.255.249.64/26', '10.255.249.0/32'
     }
     assert set(trie.get_children('10.255.249.64/26')) == {
         '10.255.249.105/32', '10.255.249.104/32',
@@ -54,3 +55,12 @@ def test_get_parent():
     assert trie.get_parent('10.255.249.105') == '10.255.249.64/26'
     assert trie.get_parent('10.255.249.0/26') == '10.255.249.0/24'
     assert trie.get_parent('10.255.249.64/26') == '10.255.249.0/24'
+    assert trie.get_parent('10.255.249.0') == '10.255.249.0/26'
+    assert trie.get_parent('10.255.249.23') == None # node not in trie so we can't get its parent
+
+    trie.insert('0.0.0.0')
+    trie.insert('0.0.0.0/16')
+    trie.insert('0.0.0.0/0')
+    assert trie.get_parent('0.0.0.0/32') == '0.0.0.0/16'
+    assert trie.get_parent('0.0.0.0/16') == '0.0.0.0/0'
+    # assert trie.get_parent('0.0.0.0/24') == None
