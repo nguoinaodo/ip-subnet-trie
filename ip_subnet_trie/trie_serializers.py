@@ -64,9 +64,9 @@ class IPSubnetProtobufSerializer(TrieProtobufSerializer):
         def node_to_proto(node: TrieNode):
             node_proto = binary_trie_pb2.BinaryTrieNode()
             node_proto.is_end = node.is_end
-            if node.children[0] is not None:
+            if node.get_child(0) is not None:
                 node_proto.children.zero.CopyFrom(node_to_proto(node.get_child(0)))
-            if node.children[1] is not None:
+            if node.get_child(1) is not None:
                 node_proto.children.one.CopyFrom(node_to_proto(node.get_child(1)))
             return node_proto
         return node_to_proto(trie._get_root()).SerializeToString()
@@ -81,7 +81,7 @@ class IPSubnetProtobufSerializer(TrieProtobufSerializer):
         Returns:
             IPSubnetNode: The deserialized IPSubnetNode object.
         """
-        def proto_to_node(node_proto: binary_trie_pb2.BinaryTrieNode):
+        def proto_to_node(node_proto):
             node = IPSubnetNode()
             node.is_end = node_proto.is_end
             node.children = [
@@ -89,4 +89,4 @@ class IPSubnetProtobufSerializer(TrieProtobufSerializer):
                 proto_to_node(node_proto.children.one) if node_proto.children.HasField('one') else None
             ]
             return node
-        return proto_to_node(binary_trie_pb2.BinaryTrieNode().FromString(s))
+        return proto_to_node(binary_trie_pb2.BinaryTrieNode.FromString(s))

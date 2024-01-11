@@ -1,5 +1,4 @@
 import re
-from abc import ABC, abstractmethod
 
 from .base import *
 from .utils import parse_ip_subnet_v4, parse_ip_subnet_v6
@@ -9,35 +8,6 @@ class IPSubnetNode(TrieNode):
         super().__init__()
         self.children = [None, None]
         self.depth = depth
-
-class IPSubnetTrie(ABC, Trie):
-    @abstractmethod
-    def insert(self, ip_subnet):
-        pass
-
-    @abstractmethod
-    def search(self, ip_subnet):
-        pass
-
-    # @abstractmethod
-    # def get_children(self, ip_subnet):
-    #     pass
-
-    # @abstractmethod
-    # def get_parent(self, ip_subnet):
-    #     pass
-
-    # @abstractmethod
-    # def delete(self, ip_subnet):
-    #     pass
-
-    # @abstractmethod
-    # def serialize(self):
-    #     pass
-
-    # @abstractmethod
-    # def deserialize(self, serialized_string):
-    #     pass
     
 class IPv4SubnetTrie(IPSubnetTrie):
     """
@@ -55,7 +25,7 @@ class IPv4SubnetTrie(IPSubnetTrie):
         deserialize(s): Deserializes the trie using the specified serialized string.
     """
 
-    def __init__(self, serializer: TrieSerializer):
+    def __init__(self, serializer: TrieSerializer = None):
         self.serializer = serializer
         self.__root = IPSubnetNode()
 
@@ -86,7 +56,7 @@ class IPv4SubnetTrie(IPSubnetTrie):
                 depth += 1
                 
         node.is_end = True
-        node.depth = netmask
+        node.depth = depth
         print(f'inserted {self.__get_node_representation(node)}')
 
     def __get_node_representation(self, node):
@@ -150,7 +120,7 @@ class IPv4SubnetTrie(IPSubnetTrie):
         for part in map(int, ip.split('.')):
             for i in range(7, -1, -1):  # For each bit in the part
                 if depth >= netmask:
-                    return parents, node
+                    break
                 bit = (part >> i) & 1
                 if node.children[bit] is None:
                     return parents, None  # IP/subnet not found
@@ -158,7 +128,7 @@ class IPv4SubnetTrie(IPSubnetTrie):
                 node = node.children[bit]
                 depth += 1
         
-        node = node if depth == netmask else None
+        node = node if depth == netmask and node.is_end else None
         return parents, node
 
     def get_children(self, ip_subnet):
@@ -265,6 +235,8 @@ class IPv4SubnetTrie(IPSubnetTrie):
         Returns:
             str: The serialized string representation of the trie.
         """
+        if not self.serializer:
+            raise ValueError('No serializer specified')
         return self.serializer.serialize(self)
 
     def deserialize(self, serialized_string):
@@ -277,6 +249,8 @@ class IPv4SubnetTrie(IPSubnetTrie):
         Returns:
             None
         """
+        if not self.serializer:
+            raise ValueError('No serializer specified')
         self.__root = self.serializer.deserialize(serialized_string)
 
 class IPv6SubnetTrie(IPSubnetTrie):
@@ -296,7 +270,7 @@ class IPv6SubnetTrie(IPSubnetTrie):
         deserialize(s): Deserializes the trie using the specified serialized string.
     """
 
-    def __init__(self, serializer: TrieSerializer):
+    def __init__(self, serializer: TrieSerializer = None):
         self.serializer = serializer
         self.__root = IPSubnetNode()
 
@@ -328,10 +302,10 @@ class IPv6SubnetTrie(IPSubnetTrie):
                 depth += 1
         
         node.is_end = True
-        node.depth = netmask
+        node.depth = depth
         print(f'inserted {self.__get_node_representation(node)}')
     
-    def __get_node_representation(self, node):
+    def __get_node_representation(self, node: IPSubnetNode):
         def traverse(current_node, path, depth):
             if current_node is node:
                 return self.__format_ip_address(path, depth)
@@ -360,8 +334,11 @@ class IPv6SubnetTrie(IPSubnetTrie):
         # Remove trailing zeros
         ip = re.sub(r':0+(/|$)', r'\1', ip)
         # Append '::' at the end if there are not enough parts
-        if ip.count(':') < 7 and not ip.endswith('::'):
+        if 1 < ip.count(':') < 7 and not '::' in ip:
             ip += '::'
+        # Handle the special case of '::'
+        if ip == ':':
+            ip = '::'
         return ip + '/' + str(depth)
 
     def search(self, ip_subnet):
@@ -396,17 +373,51 @@ class IPv6SubnetTrie(IPSubnetTrie):
 
         for part in ip:
             for i in range(15, -1, -1):
-                if depth >= netmask or node is None:
+                if depth >= netmask:
                     break
                 bit = (part >> i) & 1
+                if node.children[bit] is None:
+                    return parents, None  # IP/subnet not found
                 parents.append((node, bit))
                 node = node.children[bit]
-                if node is None:
-                    break
                 depth += 1
 
+        node = node if depth == netmask and node.is_end else None
         return parents, node
     
+    def get_children(self, ip_subnet):
+        """
+        Returns the children of an IP subnet in the trie.
+
+        Args:
+            ip_subnet (str): The IP subnet to get the children of.
+
+        Returns:
+            list: A list of string representations of the children.
+        """
+        ip, netmask = parse_ip_subnet_v6(ip_subnet)
+        _, node = self.__traverse_node(ip, netmask)
+        if node is None:
+            return []
+        return self.__dfs(node, include_self=False)
+    
+    def __dfs(self, node, include_self=True):
+        """
+        Performs a depth-first search starting from the given node.
+
+        Args:
+            node (IPSubnetNode): The starting node of the search.
+            include_self (bool): Whether to include the starting node in the result.
+
+        Returns:
+            list: A list of string representations of the nodes visited during the search.
+        """
+        result = [self.__get_node_representation(node)] if (node.is_end and include_self) else []
+        for child in node.children:
+            if child is not None:
+                result.extend(self.__dfs(child))
+        return result
+
     def get_parent(self, ip_subnet):
         """
         Retrieves the parent node of the given IP subnet in the trie.
@@ -469,3 +480,28 @@ class IPv6SubnetTrie(IPSubnetTrie):
                 # Stop if the child is an end node or has more than one child
                 break
             parent.children[bit] = None
+
+    def serialize(self):
+        """
+        Serializes the trie using the specified serializer.
+
+        Returns:
+            str: The serialized string representation of the trie.
+        """
+        if not self.serializer:
+            raise ValueError('No serializer specified')
+        return self.serializer.serialize(self)
+
+    def deserialize(self, serialized_string):
+        """
+        Deserializes a trie from a serialized string representation.
+
+        Args:
+            serialized_string (str): The serialized string representation of the trie.
+
+        Returns:
+            None
+        """
+        if not self.serializer:
+            raise ValueError('No serializer specified')
+        self.__root = self.serializer.deserialize(serialized_string)

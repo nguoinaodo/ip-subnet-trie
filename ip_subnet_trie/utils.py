@@ -54,5 +54,7 @@ def parse_ip_subnet_v6(ip_subnet):
     ip = [int(part, 16) for part in ip_parts]
     if len(ip) > 8:
         raise ValueError('Invalid IPv6 address')
+    if int(netmask) > 128:
+        raise ValueError('Invalid IPv6 subnet mask')
     
     return ip, int(netmask)

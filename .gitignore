@@ -159,5 +159,5 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-ip_subnet_trie.json
-ip_subnet_trie.pb
+*.json
+*.pb

@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 class TrieNode:
     """Represents a node in a Trie data structure."""
 
@@ -15,6 +17,35 @@ class TrieNode:
 
 class Trie:
     def _get_root(self) -> TrieNode:
+        pass
+
+class IPSubnetTrie(ABC, Trie):
+    @abstractmethod
+    def insert(self, ip_subnet):
+        pass
+
+    @abstractmethod
+    def search(self, ip_subnet):
+        pass
+
+    @abstractmethod
+    def get_children(self, ip_subnet):
+        pass
+
+    @abstractmethod
+    def get_parent(self, ip_subnet):
+        pass
+
+    @abstractmethod
+    def delete(self, ip_subnet):
+        pass
+
+    @abstractmethod
+    def serialize(self):
+        pass
+
+    @abstractmethod
+    def deserialize(self, serialized_string):
         pass
 
 class TrieSerializer:

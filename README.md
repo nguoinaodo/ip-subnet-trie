@@ -9,7 +9,7 @@ pytest -s tests
 ### Generate Python protobuf classes from proto file.
 ```
 cd ip_subnet_trie
-protoc --python_out=. trie.proto
+protoc --python_out=. binary_trie.proto
 ```
 
 ### Contribution

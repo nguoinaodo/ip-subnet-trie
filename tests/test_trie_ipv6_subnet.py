@@ -1,7 +1,9 @@
 import pytest
+
 from ip_subnet_trie import IPv6SubnetTrie, IPSubnetJsonSerializer, IPSubnetProtobufSerializer
+
 def test_trie_ipv6_subnet():
-    trie = IPv6SubnetTrie(serializer=IPSubnetProtobufSerializer())
+    trie = IPv6SubnetTrie(serializer=IPSubnetJsonSerializer())
     trie.insert('2001:db8::/32')
     trie.insert('2001:db8:abcd::/48')
     trie.insert('2001:db8:abcd:12::/64')
@@ -9,6 +11,7 @@ def test_trie_ipv6_subnet():
     trie.insert('2001:db8:abcd:12:ffff:ffff::/96')
     trie.insert('2001:db8:abcd:12:ffff:ffff:ffff::/112')
     trie.insert('2001:db8:abcd:12:ffff:ffff:ffff:ffff/128')
+    trie.insert('2001:db8:abcd:12::ff00/128')
     assert trie.search('2001:db8::/32') == '2001:db8::/32'
     assert trie.search('2001:db8:abcd::/48') == '2001:db8:abcd::/48'
     assert trie.search('2001:db8:abcd:12::/64') == '2001:db8:abcd:12::/64'
@@ -23,12 +26,44 @@ def test_trie_ipv6_subnet():
         trie.search('2001:db8:abcd:12:ffff:ffff:ffff:ffff:ffff:ffff')
     trie.delete('2001:db8:abcd:12:ffff:ffff:ffff:ffff/128')
     assert trie.search('2001:db8:abcd:12:ffff:ffff:ffff:ffff/128') is False
+    
+    trie.insert('::')
+    trie.insert('::/0')
+    assert trie.search('::') == '::/128'
+    assert trie.search('::/0') == '::/0'
+
+    with open('ip_subnet_v6_trie.json', 'w') as f:
+        f.write(trie.serialize())
+    with open('ip_subnet_v6_trie.json', 'r') as f:
+        trie.deserialize(f.read())
+    assert trie.search('2001:db8:abcd:12:ffff:ffff::/96') == '2001:db8:abcd:12:ffff:ffff::/96'
+
+def test_serialize():
+    trie = IPv6SubnetTrie(serializer=IPSubnetJsonSerializer())
+    trie.insert('2001:db8::/32')
+    trie.insert('::/0')
+    trie.insert('::')
+    trie.insert('::23')
+
+    assert set(trie.get_children('::/0')) == {'2001:db8::/32', '::/128', '::23/128'}
+
+    with open('ip_subnet_v6_trie.json', 'w') as f:
+        f.write(trie.serialize())
+    with open('ip_subnet_v6_trie.json', 'r') as f:
+        trie.deserialize(f.read())
+
+    trie.serializer = IPSubnetProtobufSerializer()
+    with open('ip_subnet_v6_trie.pb', 'wb') as f:
+        f.write(trie.serialize())
+    # with open('ip_subnet_v6_trie.pb', 'rb') as f: # TODO fix this
+    #     trie.deserialize(f.read())
 
 def test_get_parent():
-    trie = IPv6SubnetTrie(serializer=IPSubnetProtobufSerializer())
+    trie = IPv6SubnetTrie()
     trie.insert('2001:db8::/32')
-    # trie.insert('::')
-    # trie.insert('::/0')
+    trie.insert('::')
+    trie.insert('::/0')
+    trie.insert('::/24')
     trie.insert('2001:db8::')
     trie.insert('2001:db8:abcd::/48')
     trie.insert('2001:db8:abcd::')
@@ -43,7 +78,8 @@ def test_get_parent():
     trie.insert('2001:db8:abcd:12:ffff:ffff:ffff::/112')
     trie.insert('2001:db8:abcd:12:ffff:ffff:ffff::')
     trie.insert('2001:db8:abcd:12:ffff:ffff:ffff:ffff/128')
-    # assert trie.get_parent('::') == '::/0'
+    assert trie.get_parent('::') == '::/24'
+    assert trie.get_parent('::/24') == '::/0'
     assert trie.get_parent('2001:db8::') == '2001:db8::/32'
     assert trie.get_parent('2001:db8:abcd::') == '2001:db8:abcd::/48'
     assert trie.get_parent('2001:db8:abcd::1') == '2001:db8:abcd::/48'
@@ -58,3 +94,14 @@ def test_get_parent():
     assert trie.get_parent('2001:db8:abcd:12:ffff:ffff:ffff:ffff/128') == '2001:db8:abcd:12:ffff:ffff:ffff::/112'
     with pytest.raises(ValueError):
         trie.get_parent('2001:db8:abcd:12:ffff:ffff:ffff:ffff:ffff')
+    
+    trie.insert('::/12')
+    assert trie.get_parent('::/24') == '::/12'
+    assert trie.get_parent('::/12') == '::/0'
+    assert trie.get_parent('::/13') == None
+    assert trie.get_parent('::2122') == None
+
+    with pytest.raises(ValueError):
+        trie.serialize()
+    with pytest.raises(ValueError):
+        trie.deserialize('')
