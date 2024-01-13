@@ -1,4 +1,4 @@
-# ip-subnet-trie
+# IP-Subnet-Trie
 An efficient data structure for handling a large number of IP addresses/subnets in a hierarchy. 
 
 ### Run tests

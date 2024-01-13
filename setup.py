@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='IP-Subnet-Trie',
-    version='0.2',
+    version='1.0',
     packages=find_packages(),
     description='An efficient data structure for handling a large number of IP addresses/subnets in a hierarchy.',
     long_description=open('README.md').read(),
