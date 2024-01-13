@@ -2,7 +2,6 @@ import json
 
 from . import binary_trie_pb2
 from .base import *
-from .trie_ip_subnet import IPSubnetNode
 
 class IPSubnetJsonSerializer(TrieJsonSerializer):
     """
@@ -51,42 +50,73 @@ class IPSubnetProtobufSerializer(TrieProtobufSerializer):
     for serializing and deserializing Trie objects to and from Protobuf format.
     """
 
-    def serialize(self, trie: Trie) -> bytes:
+    def serialize(self, trie: IPSubnetTrie):
         """
-        Serialize the Trie object to Protobuf format.
+        Serialize the IPSubnetTrie object into a binary format.
 
         Args:
-            trie (Trie): The Trie object to be serialized.
+            trie (IPSubnetTrie): The IPSubnetTrie object to be serialized.
 
         Returns:
-            bytes: The serialized Trie object in Protobuf format.
+            bytes: The serialized binary data representing the IPSubnetTrie.
         """
-        def node_to_proto(node: TrieNode):
-            node_proto = binary_trie_pb2.BinaryTrieNode()
+        nodes_proto = binary_trie_pb2.BinaryTrieNodes()
+
+        root = trie._get_root()
+        if root is None:
+            return nodes_proto.SerializeToString()
+
+        queue = [root]
+
+        while queue:
+            node = queue.pop(0)
+            node_proto = nodes_proto.nodes.add()
             node_proto.is_end = node.is_end
             if node.children[0] is not None:
-                node_proto.children.zero.CopyFrom(node_to_proto(node.get_child(0)))
+                queue.append(node.children[0])
+                node_proto.has_zero_child = True
             if node.children[1] is not None:
-                node_proto.children.one.CopyFrom(node_to_proto(node.get_child(1)))
-            return node_proto
-        return node_to_proto(trie._get_root()).SerializeToString()
+                queue.append(node.children[1])
+                node_proto.has_one_child = True
 
-    def deserialize(self, s) -> IPSubnetNode:
+        return nodes_proto.SerializeToString()
+
+    def deserialize(self, s):
         """
-        Deserialize the Protobuf data to an IPSubnetNode object.
+        Deserialize a binary trie from a string representation.
 
         Args:
-            s (bytes): The serialized Protobuf data.
+            s (str): The string representation of the binary trie.
 
         Returns:
-            IPSubnetNode: The deserialized IPSubnetNode object.
+            IPSubnetNode: The root node of the deserialized binary trie.
         """
-        def proto_to_node(node_proto: binary_trie_pb2.BinaryTrieNode):
-            node = IPSubnetNode()
+        nodes_proto = binary_trie_pb2.BinaryTrieNodes()
+        nodes_proto.ParseFromString(s)
+
+        if not nodes_proto.nodes:
+            return None
+
+        nodes = [None] * len(nodes_proto.nodes)
+        queue = [(0, None, False)]  # (node index, parent node, is right child)
+        next_index = 1  # The index of the next node to add to nodes_proto.nodes
+
+        while queue:
+            node_index, parent_node, is_right_child = queue.pop(0)
+            node_proto = nodes_proto.nodes[node_index]
+
+            node = IPSubnetNode()  # Replace with your actual Node class
             node.is_end = node_proto.is_end
-            node.children = [
-                proto_to_node(node_proto.children.zero) if node_proto.children.HasField('zero') else None,
-                proto_to_node(node_proto.children.one) if node_proto.children.HasField('one') else None
-            ]
-            return node
-        return proto_to_node(binary_trie_pb2.BinaryTrieNode().FromString(s))
+            nodes[node_index] = node
+
+            if parent_node is not None:
+                parent_node.children[is_right_child] = node
+
+            if node_proto.has_zero_child:
+                queue.append((next_index, node, False))
+                next_index += 1
+            if node_proto.has_one_child:
+                queue.append((next_index, node, True))
+                next_index += 1
+
+        return nodes[0]  # The root of the trie

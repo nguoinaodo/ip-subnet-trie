@@ -1,2 +1,2 @@
-from .trie_ip_subnet import IPSubnetTrie
+from .trie_ip_subnet import IPv4SubnetTrie, IPv6SubnetTrie
 from .trie_serializers import IPSubnetJsonSerializer, IPSubnetProtobufSerializer

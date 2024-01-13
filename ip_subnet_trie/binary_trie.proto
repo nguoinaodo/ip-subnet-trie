@@ -2,10 +2,10 @@ syntax = "proto3";
 
 message BinaryTrieNode {
   bool is_end = 1;
-  Children children = 2;
+  bool has_zero_child = 2;
+  bool has_one_child = 3;
+}
 
-  message Children {
-    BinaryTrieNode zero = 1;
-    BinaryTrieNode one = 2;
-  }
+message BinaryTrieNodes {
+    repeated BinaryTrieNode nodes = 1;  // The nodes in the trie
 }

@@ -1,1 +1,2 @@
 protobuf==4.25.1
+pytest==7.4.4

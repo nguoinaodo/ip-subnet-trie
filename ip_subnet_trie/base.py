@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 class TrieNode:
     """Represents a node in a Trie data structure."""
 
@@ -12,15 +14,56 @@ class TrieNode:
     def get_children(self) -> list['TrieNode']:
         """Returns a list of all child nodes."""
         return self.children
+    
+class BinaryTrieNode(TrieNode):
+    def __init__(self):
+        super().__init__()
+        self.children = [None, None]
+
+class IPSubnetNode(BinaryTrieNode):
+    def __init__(self, depth=0):
+        super().__init__()
+        self.depth = depth
 
 class Trie:
     def _get_root(self) -> TrieNode:
         pass
 
-class TrieSerializer:
+class IPSubnetTrie(ABC, Trie):
+    @abstractmethod
+    def insert(self, ip_subnet):
+        pass
+
+    @abstractmethod
+    def search(self, ip_subnet):
+        pass
+
+    @abstractmethod
+    def get_children(self, ip_subnet):
+        pass
+
+    @abstractmethod
+    def get_parent(self, ip_subnet):
+        pass
+
+    @abstractmethod
+    def delete(self, ip_subnet):
+        pass
+
+    @abstractmethod
+    def serialize(self):
+        pass
+
+    @abstractmethod
+    def deserialize(self, serialized_string):
+        pass
+
+class TrieSerializer(ABC):
+    @abstractmethod
     def serialize(self, trie: Trie):
         pass
 
+    @abstractmethod
     def deserialize(self, s):
         pass
 
