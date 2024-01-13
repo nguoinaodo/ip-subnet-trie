@@ -55,8 +55,8 @@ def test_serialize():
     trie.serializer = IPSubnetProtobufSerializer()
     with open('ip_subnet_v6_trie.pb', 'wb') as f:
         f.write(trie.serialize())
-    # with open('ip_subnet_v6_trie.pb', 'rb') as f: # TODO fix this
-    #     trie.deserialize(f.read())
+    with open('ip_subnet_v6_trie.pb', 'rb') as f:
+        trie.deserialize(f.read())
 
 def test_get_parent():
     trie = IPv6SubnetTrie()

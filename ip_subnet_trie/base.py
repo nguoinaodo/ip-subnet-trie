@@ -14,6 +14,16 @@ class TrieNode:
     def get_children(self) -> list['TrieNode']:
         """Returns a list of all child nodes."""
         return self.children
+    
+class BinaryTrieNode(TrieNode):
+    def __init__(self):
+        super().__init__()
+        self.children = [None, None]
+
+class IPSubnetNode(BinaryTrieNode):
+    def __init__(self, depth=0):
+        super().__init__()
+        self.depth = depth
 
 class Trie:
     def _get_root(self) -> TrieNode:
@@ -48,10 +58,12 @@ class IPSubnetTrie(ABC, Trie):
     def deserialize(self, serialized_string):
         pass
 
-class TrieSerializer:
+class TrieSerializer(ABC):
+    @abstractmethod
     def serialize(self, trie: Trie):
         pass
 
+    @abstractmethod
     def deserialize(self, s):
         pass
 
