@@ -1,2 +1,2 @@
 protobuf==5.27.3
-pytest==8.3.2
+pytest==8.3.3
